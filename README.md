@@ -1,47 +1,39 @@
 # Kanban Board
 
-Collaborative project management with drag & drop task boards.
+Collaborative project management with drag & drop.
 
-**Stack:** Flask · PostgreSQL · React · TypeScript
+**Stack:** Flask (Python) · PostgreSQL · React · TypeScript · Docker
 
-## Ports
+## 🚀 Quick Start
+1. `make up`
+2. Access at `http://localhost:3202`
 
-| Service  | Port |
-|----------|------|
-| Postgres | 3200 |
-| Backend  | 3201 |
-| Frontend | 3202 |
+## 🛠 Features
+- **Board Management**: Create/manage multiple project boards.
+- **Drag & Drop**: Fluid task movement across stages.
+- **Member Control**: Direct member addition and removal.
+- **User Assignment**: Link tasks to specific users.
+- **Focus Filters**: Quick "My Tasks" toggle view.
+- **Secure Auth**: JWT-protected API and frontend boundaries.
 
-## Setup
+## 💻 Development
+| Service | Port | Command |
+| :--- | :--- | :--- |
+| **Postgres** | 3200 | `make db-up` |
+| **Backend** | 3201 | `make backend` |
+| **Frontend** | 3202 | `make frontend` |
 
-```bash
-# 1. start postgres
-make db-up
+**Testing:** `make test`
 
-# 2. install deps
-make install-backend
-make install-frontend
+## 🔮 Production Roadmap
+- **Observability**: Distributed tracing and structured logging.
+- **Alerting**: Automated error tracking and monitoring.
+- **RBAC**: Fine-grained access control and permissions.
+- **Security**: API Rate Limiting and Secrets Management.
+- **Caching**: Redis for fast data access.
+- **Workers**: Asynchronous background jobs via Celery.
+- **Real-time**: WebSocket-based multi-user board synchronization.
+- **DevOps**: CI/CD with automated E2E testing.
+- **IaS**: Infrastructure as Code with Terraform.
 
-# 3. run migrations
-make migrate-gen msg="initial"
-make migrate
-
-# 4. start servers (in separate terminals)
-make backend
-make frontend
-```
-
-## Tests
-
-```bash
-make test
-```
-
-## Env Files
-
-Copy and edit the example files:
-
-```
-backend/example.env  → backend/.env
-frontend/example.env → frontend/.env
-```
+Due to time constraints, focus was on core structure and UX.
