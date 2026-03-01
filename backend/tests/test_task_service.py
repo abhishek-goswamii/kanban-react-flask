@@ -137,3 +137,32 @@ class TestTaskServiceDelete:
 
             assert error is None
             service.task_repo.delete.assert_called_once()
+
+class TestTaskServiceUpdate:
+    """tests for updating tasks"""
+
+    def test_update_task_success(self, mock_db):
+        """should update task details including assignee_id"""
+        with patch.object(TaskService, "__init__", lambda self, db: None):
+            service = TaskService(mock_db)
+            service.task_repo = MagicMock()
+            service.member_repo = MagicMock()
+
+            mock_task = MagicMock(spec=Task)
+            mock_task.project_id = 1
+            mock_task.title = "Old Title"
+            service.task_repo.find_by_id.return_value = mock_task
+
+            mock_membership = MagicMock(spec=ProjectMember)
+            mock_membership.status = "accepted"
+            service.member_repo.find_by_project_and_user.return_value = mock_membership
+
+            service.task_repo.update.return_value = mock_task
+
+            # update title and unassign
+            task, error = service.update_task(task_id=1, user_id=1, title="New Title", assignee_id=None)
+
+            assert task is not None
+            assert error is None
+            assert mock_task.title == "New Title"
+            assert mock_task.assignee_id is None

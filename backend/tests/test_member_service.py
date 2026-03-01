@@ -7,21 +7,21 @@ from app.models.project_member import ProjectMember
 from app.core.constants import Messages, ProjectRole, InvitationStatus
 
 
-class TestMemberServiceInvite:
-    """tests for member invitation"""
+class TestMemberServiceAdd:
+    """tests for member addition"""
 
-    def test_invite_success(self, mock_db):
-        """should invite a user to a project"""
+    def test_add_success(self, mock_db):
+        """should add a user to a project"""
         with patch.object(MemberService, "__init__", lambda self, db: None):
             service = MemberService(mock_db)
             service.member_repo = MagicMock()
             service.project_repo = MagicMock()
             service.user_repo = MagicMock()
 
-            # inviter is owner
-            mock_inviter = MagicMock(spec=ProjectMember)
-            mock_inviter.role = ProjectRole.OWNER
-            service.member_repo.find_by_project_and_user.side_effect = [mock_inviter, None]
+            # adder is owner
+            mock_adder = MagicMock(spec=ProjectMember)
+            mock_adder.role = ProjectRole.OWNER
+            service.member_repo.find_by_project_and_user.side_effect = [mock_adder, None]
 
             # user exists
             mock_user = MagicMock(spec=User)
@@ -31,55 +31,55 @@ class TestMemberServiceInvite:
             mock_member = MagicMock(spec=ProjectMember)
             service.member_repo.create.return_value = mock_member
 
-            member, error = service.invite_member(project_id=1, email="new@test.com", role=ProjectRole.MEMBER, inviter_id=1)
+            member, error = service.add_member(project_id=1, email="new@test.com", role=ProjectRole.MEMBER, adder_id=1)
 
             assert member is not None
             assert error is None
 
-    def test_invite_forbidden(self, mock_db):
-        """should reject invitation from non-admin/non-owner"""
+    def test_add_forbidden(self, mock_db):
+        """should reject addition from non-admin/non-owner"""
         with patch.object(MemberService, "__init__", lambda self, db: None):
             service = MemberService(mock_db)
             service.member_repo = MagicMock()
             service.user_repo = MagicMock()
 
-            mock_inviter = MagicMock(spec=ProjectMember)
-            mock_inviter.role = ProjectRole.MEMBER
-            service.member_repo.find_by_project_and_user.return_value = mock_inviter
+            mock_adder = MagicMock(spec=ProjectMember)
+            mock_adder.role = ProjectRole.MEMBER
+            service.member_repo.find_by_project_and_user.return_value = mock_adder
 
-            member, error = service.invite_member(project_id=1, email="x@test.com", role=ProjectRole.MEMBER, inviter_id=3)
+            member, error = service.add_member(project_id=1, email="x@test.com", role=ProjectRole.MEMBER, adder_id=3)
 
             assert member is None
             assert error == Messages.FORBIDDEN
 
-    def test_invite_user_not_found(self, mock_db):
-        """should return error when invited user doesn't exist"""
+    def test_add_user_not_found(self, mock_db):
+        """should return error when added user doesn't exist"""
         with patch.object(MemberService, "__init__", lambda self, db: None):
             service = MemberService(mock_db)
             service.member_repo = MagicMock()
             service.user_repo = MagicMock()
 
-            mock_inviter = MagicMock(spec=ProjectMember)
-            mock_inviter.role = ProjectRole.OWNER
-            service.member_repo.find_by_project_and_user.return_value = mock_inviter
+            mock_adder = MagicMock(spec=ProjectMember)
+            mock_adder.role = ProjectRole.OWNER
+            service.member_repo.find_by_project_and_user.return_value = mock_adder
             service.user_repo.find_by_email.return_value = None
 
-            member, error = service.invite_member(project_id=1, email="nope@test.com", role=ProjectRole.MEMBER, inviter_id=1)
+            member, error = service.add_member(project_id=1, email="nope@test.com", role=ProjectRole.MEMBER, adder_id=1)
 
             assert member is None
             assert error == Messages.USER_NOT_FOUND
 
-    def test_invite_already_member(self, mock_db):
+    def test_add_already_member(self, mock_db):
         """should return error when user is already a member"""
         with patch.object(MemberService, "__init__", lambda self, db: None):
             service = MemberService(mock_db)
             service.member_repo = MagicMock()
             service.user_repo = MagicMock()
 
-            mock_inviter = MagicMock(spec=ProjectMember)
-            mock_inviter.role = ProjectRole.OWNER
+            mock_adder = MagicMock(spec=ProjectMember)
+            mock_adder.role = ProjectRole.OWNER
             service.member_repo.find_by_project_and_user.side_effect = [
-                mock_inviter,
+                mock_adder,
                 MagicMock(spec=ProjectMember),  # already member
             ]
 
@@ -87,10 +87,11 @@ class TestMemberServiceInvite:
             mock_user.id = 2
             service.user_repo.find_by_email.return_value = mock_user
 
-            member, error = service.invite_member(project_id=1, email="dup@test.com", role=ProjectRole.MEMBER, inviter_id=1)
+            member, error = service.add_member(project_id=1, email="dup@test.com", role=ProjectRole.MEMBER, adder_id=1)
 
             assert member is None
             assert error == Messages.ALREADY_A_MEMBER
+
 
 
 class TestMemberServiceRemove:
