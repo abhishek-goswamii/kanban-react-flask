@@ -303,6 +303,7 @@ a:hover {
   margin-bottom: 6px;
   background: linear-gradient(135deg, var(--text-primary), var(--accent));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -360,6 +361,7 @@ a:hover {
   font-weight: 700;
   background: linear-gradient(135deg, var(--accent), #9178ff);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -747,4 +749,175 @@ a:hover {
 .add-task-actions {
   display: flex;
   gap: 6px;
+}
+
+/* ─── board additions ─── */
+.header-filters {
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.wide-modal {
+  max-width: 600px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.invite-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+.role-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.813rem;
+  outline: none;
+}
+
+.user-selection-list {
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-subtle);
+}
+
+.user-invite-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.user-invite-row:hover {
+  background: var(--bg-hover);
+}
+
+.user-invite-row .user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-invite-row .user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  padding: 0;
+  background: none;
+  /* override dashboard user-name styles */
+}
+
+.user-invite-row .user-email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.empty-text {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.members-scroll {
+  max-height: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.member-row {
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-info .name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.member-info .email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.member-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assignee-select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.task-card-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.assignee-select-mini {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.688rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  max-width: 80px;
+}
+
+.assignee-select-mini:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
 }

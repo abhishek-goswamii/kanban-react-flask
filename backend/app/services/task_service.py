@@ -76,9 +76,7 @@ class TaskService:
         self,
         task_id: int,
         user_id: int,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        assignee_id: Optional[int] = None,
+        **kwargs
     ) -> Tuple[Optional[Task], Optional[str]]:
         """updates task details"""
         task = self.task_repo.find_by_id(task_id)
@@ -89,15 +87,16 @@ class TaskService:
         if not membership or membership.status != "accepted":
             return None, Messages.FORBIDDEN
 
-        if title is not None:
-            task.title = title
-        if description is not None:
-            task.description = description
-        if assignee_id is not None:
-            task.assignee_id = assignee_id
+        if "title" in kwargs and kwargs["title"] is not None:
+            task.title = kwargs["title"]
+        if "description" in kwargs and kwargs["description"] is not None:
+            task.description = kwargs["description"]
+        if "assignee_id" in kwargs:
+            task.assignee_id = kwargs["assignee_id"]
 
         updated = self.task_repo.update(task)
         return updated, None
+
 
     def move_task(self, task_id: int, user_id: int, stage_id: int, position: int) -> Tuple[Optional[Task], Optional[str]]:
         """moves task to a different stage and/or position"""

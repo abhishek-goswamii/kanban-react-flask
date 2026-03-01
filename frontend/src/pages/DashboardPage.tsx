@@ -1,14 +1,13 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { projectApi, memberApi } from "../api/services";
-import type { Project, ProjectMember } from "../types";
+import { projectApi } from "../api/services";
+import type { Project } from "../types";
 
 export default function DashboardPage() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [projects, setProjects] = useState<Project[]>([]);
-    const [invitations, setInvitations] = useState<ProjectMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -25,14 +24,10 @@ export default function DashboardPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [projRes, invRes] = await Promise.all([
-                projectApi.list(),
-                memberApi.invitations(),
-            ]);
+            const projRes = await projectApi.list();
             if (projRes.data.status === "success") setProjects(projRes.data.data || []);
-            if (invRes.data.status === "success") setInvitations(invRes.data.data || []);
         } catch {
-            setError("failed to load data");
+            setError("failed to load projects");
         } finally {
             setLoading(false);
         }
@@ -53,24 +48,6 @@ export default function DashboardPage() {
             setError("failed to create project");
         } finally {
             setCreating(false);
-        }
-    };
-
-    const handleAccept = async (id: number) => {
-        try {
-            await memberApi.accept(id);
-            fetchData();
-        } catch {
-            setError("failed to accept invitation");
-        }
-    };
-
-    const handleReject = async (id: number) => {
-        try {
-            await memberApi.reject(id);
-            fetchData();
-        } catch {
-            setError("failed to reject invitation");
         }
     };
 
@@ -98,31 +75,6 @@ export default function DashboardPage() {
 
             <main className="dashboard-main">
                 {error && <div className="error-banner">{error}</div>}
-
-                {/* invitations */}
-                {invitations.length > 0 && (
-                    <section className="invitations-section">
-                        <h2>Pending Invitations</h2>
-                        <div className="invitation-list">
-                            {invitations.map((inv) => (
-                                <div key={inv.id} className="invitation-card">
-                                    <div className="invitation-info">
-                                        <span className="invitation-project">{inv.project_name}</span>
-                                        <span className="invitation-role">{inv.role}</span>
-                                    </div>
-                                    <div className="invitation-actions">
-                                        <button className="btn-sm btn-success" onClick={() => handleAccept(inv.id)}>
-                                            Accept
-                                        </button>
-                                        <button className="btn-sm btn-danger" onClick={() => handleReject(inv.id)}>
-                                            Reject
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
 
                 {/* projects */}
                 <section className="projects-section">

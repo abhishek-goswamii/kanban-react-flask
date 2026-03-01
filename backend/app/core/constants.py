@@ -77,6 +77,7 @@ class Messages:
     COMMENT_NOT_FOUND = "comment not found"
 
     # member
+    MEMBER_ADDED = "member added successfully"
     MEMBER_INVITED = "member invited successfully"
     MEMBER_REMOVED = "member removed successfully"
     MEMBER_NOT_FOUND = "member not found"

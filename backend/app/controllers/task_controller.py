@@ -105,10 +105,9 @@ def update_task(current_user, task_id):
         task, error = service.update_task(
             task_id=task_id,
             user_id=current_user.id,
-            title=data.get("title"),
-            description=data.get("description"),
-            assignee_id=data.get("assignee_id"),
+            **data
         )
+
         if error:
             code = 404 if error == Messages.TASK_NOT_FOUND else 403
             return APIResponse.error(message=error, code=code)

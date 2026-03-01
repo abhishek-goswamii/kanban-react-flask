@@ -17,13 +17,13 @@ class MemberService:
         self.project_repo = ProjectRepository(db)
         self.user_repo = UserRepository(db)
 
-    def invite_member(
-        self, project_id: int, email: str, role: str, inviter_id: int
+    def add_member(
+        self, project_id: int, email: str, role: str, adder_id: int
     ) -> Tuple[Optional[ProjectMember], Optional[str]]:
-        """invites a user to a project"""
-        # verify inviter is owner or admin
-        inviter_membership = self.member_repo.find_by_project_and_user(project_id, inviter_id)
-        if not inviter_membership or inviter_membership.role not in [ProjectRole.OWNER, ProjectRole.ADMIN]:
+        """directly adds a user to a project"""
+        # verify adder is owner or admin
+        adder_membership = self.member_repo.find_by_project_and_user(project_id, adder_id)
+        if not adder_membership or adder_membership.role not in [ProjectRole.OWNER, ProjectRole.ADMIN]:
             return None, Messages.FORBIDDEN
 
         # find user by email
@@ -40,42 +40,11 @@ class MemberService:
             project_id=project_id,
             user_id=user.id,
             role=role,
-            status=InvitationStatus.PENDING,
+            status=InvitationStatus.ACCEPTED,
         )
         created = self.member_repo.create(member)
         return created, None
 
-    def accept_invitation(self, member_id: int, user_id: int) -> Optional[str]:
-        """accepts a pending invitation"""
-        member = self.member_repo.find_by_id(member_id)
-        if not member:
-            return Messages.INVITATION_NOT_FOUND
-
-        if member.user_id != user_id:
-            return Messages.FORBIDDEN
-
-        if member.status != InvitationStatus.PENDING:
-            return Messages.INVITATION_NOT_FOUND
-
-        member.status = InvitationStatus.ACCEPTED
-        self.member_repo.update(member)
-        return None
-
-    def reject_invitation(self, member_id: int, user_id: int) -> Optional[str]:
-        """rejects a pending invitation"""
-        member = self.member_repo.find_by_id(member_id)
-        if not member:
-            return Messages.INVITATION_NOT_FOUND
-
-        if member.user_id != user_id:
-            return Messages.FORBIDDEN
-
-        if member.status != InvitationStatus.PENDING:
-            return Messages.INVITATION_NOT_FOUND
-
-        member.status = InvitationStatus.REJECTED
-        self.member_repo.update(member)
-        return None
 
     def get_members(self, project_id: int, user_id: int) -> Tuple[Optional[List[dict]], Optional[str]]:
         """returns all members of a project"""

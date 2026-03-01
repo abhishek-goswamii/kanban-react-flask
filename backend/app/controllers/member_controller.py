@@ -11,10 +11,10 @@ from app.schemas.member_schema import InviteMemberSchema
 member_bp = Blueprint("members", __name__)
 
 
-@member_bp.route("/invite", methods=["POST"])
+@member_bp.route("/add", methods=["POST"])
 @auth_required
-def invite_member(current_user):
-    """invite a user to a project"""
+def add_member(current_user):
+    """directly add a user to a project"""
     schema = InviteMemberSchema()
     try:
         data = schema.load(request.get_json())
@@ -28,17 +28,17 @@ def invite_member(current_user):
     db = SessionLocal()
     try:
         service = MemberService(db)
-        member, error = service.invite_member(
+        member, error = service.add_member(
             project_id=project_id,
             email=data["email"],
             role=data["role"],
-            inviter_id=current_user.id,
+            adder_id=current_user.id,
         )
         if error:
             code = 404 if error == Messages.USER_NOT_FOUND else 409 if error == Messages.ALREADY_A_MEMBER else 403
             return APIResponse.error(message=error, code=code)
 
-        return APIResponse.success(data=member.to_dict(), message=Messages.MEMBER_INVITED, code=201)
+        return APIResponse.success(data=member.to_dict(), message=Messages.MEMBER_ADDED, code=201)
     except Exception as e:
         db.rollback()
         return APIResponse.error(message=Messages.SERVER_ERROR, code=500)
@@ -68,59 +68,6 @@ def get_members(current_user):
         db.close()
 
 
-@member_bp.route("/invitations", methods=["GET"])
-@auth_required
-def get_invitations(current_user):
-    """get pending invitations for current user"""
-    db = SessionLocal()
-    try:
-        service = MemberService(db)
-        invitations = service.get_pending_invitations(current_user.id)
-        return APIResponse.success(data=invitations)
-    except Exception as e:
-        return APIResponse.error(message=Messages.SERVER_ERROR, code=500)
-    finally:
-        db.close()
-
-
-@member_bp.route("/<int:member_id>/accept", methods=["POST"])
-@auth_required
-def accept_invitation(current_user, member_id):
-    """accept an invitation"""
-    db = SessionLocal()
-    try:
-        service = MemberService(db)
-        error = service.accept_invitation(member_id, current_user.id)
-        if error:
-            code = 404 if error == Messages.INVITATION_NOT_FOUND else 403
-            return APIResponse.error(message=error, code=code)
-
-        return APIResponse.success(message=Messages.INVITATION_ACCEPTED)
-    except Exception as e:
-        db.rollback()
-        return APIResponse.error(message=Messages.SERVER_ERROR, code=500)
-    finally:
-        db.close()
-
-
-@member_bp.route("/<int:member_id>/reject", methods=["POST"])
-@auth_required
-def reject_invitation(current_user, member_id):
-    """reject an invitation"""
-    db = SessionLocal()
-    try:
-        service = MemberService(db)
-        error = service.reject_invitation(member_id, current_user.id)
-        if error:
-            code = 404 if error == Messages.INVITATION_NOT_FOUND else 403
-            return APIResponse.error(message=error, code=code)
-
-        return APIResponse.success(message=Messages.INVITATION_REJECTED)
-    except Exception as e:
-        db.rollback()
-        return APIResponse.error(message=Messages.SERVER_ERROR, code=500)
-    finally:
-        db.close()
 
 
 @member_bp.route("/<int:member_user_id>", methods=["DELETE"])

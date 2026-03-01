@@ -12,6 +12,8 @@ export const authApi = {
     logout: () => api.post<ApiResponse<null>>("/auth/logout"),
 
     me: () => api.get<ApiResponse<User>>("/auth/me"),
+
+    listUsers: () => api.get<ApiResponse<User[]>>("/auth/users"),
 };
 
 // projects
@@ -39,7 +41,7 @@ export const taskApi = {
 
     get: (id: number) => api.get<ApiResponse<Task>>(`/tasks/${id}`),
 
-    update: (id: number, data: { title?: string; description?: string; assignee_id?: number }) =>
+    update: (id: number, data: { title?: string; description?: string; assignee_id?: number | null }) =>
         api.put<ApiResponse<Task>>(`/tasks/${id}`, data),
 
     move: (id: number, data: { stage_id: number; position: number }) =>
@@ -61,18 +63,13 @@ export const commentApi = {
 
 // members
 export const memberApi = {
-    invite: (projectId: number, data: { email: string; role: string }) =>
-        api.post<ApiResponse<ProjectMember>>(`/members/invite?project_id=${projectId}`, data),
+    add: (projectId: number, data: { email: string; role: string }) =>
+        api.post<ApiResponse<ProjectMember>>(`/members/add?project_id=${projectId}`, data),
 
     list: (projectId: number) =>
         api.get<ApiResponse<ProjectMember[]>>(`/members?project_id=${projectId}`),
 
-    invitations: () => api.get<ApiResponse<ProjectMember[]>>("/members/invitations"),
-
-    accept: (id: number) => api.post<ApiResponse<null>>(`/members/${id}/accept`),
-
-    reject: (id: number) => api.post<ApiResponse<null>>(`/members/${id}/reject`),
-
     remove: (projectId: number, userId: number) =>
         api.delete<ApiResponse<null>>(`/members/${userId}?project_id=${projectId}`),
 };
+

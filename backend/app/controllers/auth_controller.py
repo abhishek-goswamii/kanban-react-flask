@@ -100,3 +100,26 @@ def me():
         return APIResponse.error(message=Messages.SERVER_ERROR, code=500)
     finally:
         db.close()
+
+
+@auth_bp.route("/users", methods=["GET"])
+def list_users():
+    """list all users (authenticated only)"""
+    token = request.cookies.get(JWT_COOKIE_NAME)
+    if not token:
+        return APIResponse.error(message=Messages.UNAUTHORIZED, code=401)
+
+    db = SessionLocal()
+    try:
+        service = AuthService(db)
+        _, error = service.get_current_user(token)
+        if error:
+            return APIResponse.error(message=error, code=401)
+
+        users = service.user_repo.list_all()
+        return APIResponse.success(data=[u.to_dict() for u in users])
+    except Exception as e:
+        return APIResponse.error(message=Messages.SERVER_ERROR, code=500)
+    finally:
+        db.close()
+

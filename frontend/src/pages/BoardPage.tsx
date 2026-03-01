@@ -2,8 +2,8 @@ import { useState, useEffect, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { useAuth } from "../context/AuthContext";
-import { projectApi, taskApi, memberApi } from "../api/services";
-import type { Project, Stage, Task, ProjectMember } from "../types";
+import { projectApi, taskApi, memberApi, authApi } from "../api/services";
+import type { Project, Task, ProjectMember, User } from "../types";
 
 export default function BoardPage() {
     const { projectId } = useParams<{ projectId: string }>();
@@ -14,17 +14,22 @@ export default function BoardPage() {
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [members, setMembers] = useState<ProjectMember[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // filtering
+    const [filterMyTasks, setFilterMyTasks] = useState(false);
 
     // create task form
     const [showAddTask, setShowAddTask] = useState<number | null>(null);
     const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [newTaskAssignee, setNewTaskAssignee] = useState<number | undefined>();
 
     // invite modal
     const [showInvite, setShowInvite] = useState(false);
-    const [inviteEmail, setInviteEmail] = useState("");
     const [inviteRole, setInviteRole] = useState("member");
+    const [userSearch, setUserSearch] = useState("");
 
     useEffect(() => {
         fetchBoard();
@@ -48,8 +53,28 @@ export default function BoardPage() {
         }
     };
 
-    const getTasksForStage = (stageId: number) =>
-        tasks.filter((t) => t.stage_id === stageId).sort((a, b) => a.position - b.position);
+    const fetchUsers = async () => {
+        try {
+            const res = await authApi.listUsers();
+            if (res.data.status === "success") {
+                setAllUsers(res.data.data || []);
+            }
+        } catch {
+            setError("failed to load users");
+        }
+    };
+
+    useEffect(() => {
+        if (showInvite) fetchUsers();
+    }, [showInvite]);
+
+    const getTasksForStage = (stageId: number) => {
+        let filtered = tasks.filter((t) => t.stage_id === stageId);
+        if (filterMyTasks && user) {
+            filtered = filtered.filter((t) => t.assignee_id === user.id);
+        }
+        return filtered.sort((a, b) => a.position - b.position);
+    };
 
     const handleDragEnd = async (result: DropResult) => {
         if (!result.destination) return;
@@ -74,11 +99,16 @@ export default function BoardPage() {
         e.preventDefault();
         if (!newTaskTitle.trim()) return;
         try {
-            const res = await taskApi.create(pid, { title: newTaskTitle, stage_id: stageId });
+            const res = await taskApi.create(pid, {
+                title: newTaskTitle,
+                stage_id: stageId,
+                assignee_id: newTaskAssignee
+            });
             if (res.data.status === "success" && res.data.data) {
                 setTasks((prev) => [...prev, res.data.data]);
             }
             setNewTaskTitle("");
+            setNewTaskAssignee(undefined);
             setShowAddTask(null);
         } catch {
             setError("failed to create task");
@@ -94,17 +124,26 @@ export default function BoardPage() {
         }
     };
 
-    const handleInvite = async (e: FormEvent) => {
-        e.preventDefault();
+    const handleAddUser = async (email: string) => {
         try {
-            const res = await memberApi.invite(pid, { email: inviteEmail, role: inviteRole });
+            const res = await memberApi.add(pid, { email, role: inviteRole });
             if (res.data.status === "success") {
-                setShowInvite(false);
-                setInviteEmail("");
                 fetchBoard();
             }
         } catch (err: any) {
-            setError(err.response?.data?.message || "failed to invite");
+            setError(err.response?.data?.message || "failed to add member");
+        }
+    };
+
+    const handleRemoveMember = async (targetUserId: number) => {
+        if (!window.confirm("Are you sure you want to remove this member?")) return;
+        try {
+            const res = await memberApi.remove(pid, targetUserId);
+            if (res.data.status === "success") {
+                fetchBoard();
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || "failed to remove member");
         }
     };
 
@@ -125,6 +164,11 @@ export default function BoardPage() {
     }
 
     const stages = project.stages || [];
+    const filteredUsers = allUsers.filter(u =>
+        (u.full_name.toLowerCase().includes(userSearch.toLowerCase()) ||
+            u.email.toLowerCase().includes(userSearch.toLowerCase())) &&
+        !members.some(m => m.user_id === u.id)
+    );
 
     return (
         <div className="board-page">
@@ -134,10 +178,18 @@ export default function BoardPage() {
                         ← Back
                     </button>
                     <h1>{project.name}</h1>
+                    <div className="header-filters">
+                        <button
+                            className={`btn-sm ${filterMyTasks ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setFilterMyTasks(!filterMyTasks)}
+                        >
+                            {filterMyTasks ? 'Showing My Tasks' : 'Filter My Tasks'}
+                        </button>
+                    </div>
                 </div>
                 <div className="header-right">
                     <button className="btn-secondary" onClick={() => setShowInvite(true)}>
-                        Invite
+                        Add Members
                     </button>
                     <span className="user-name">{user?.full_name}</span>
                     <button className="btn-ghost" onClick={logout}>
@@ -146,7 +198,7 @@ export default function BoardPage() {
                 </div>
             </header>
 
-            {error && <div className="error-banner">{error}</div>}
+            {error && <div className="error-banner" onClick={() => setError(null)}>{error}</div>}
 
             <div className="board-container">
                 <DragDropContext onDragEnd={handleDragEnd}>
@@ -192,6 +244,24 @@ export default function BoardPage() {
                                                                 {task.description && (
                                                                     <p className="task-desc">{task.description}</p>
                                                                 )}
+                                                                <div className="task-card-footer">
+                                                                    <select
+                                                                        className="assignee-select-mini"
+                                                                        value={task.assignee_id || ""}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value ? Number(e.target.value) : null;
+                                                                            taskApi.update(task.id, { assignee_id: val }).then(() => fetchBoard());
+                                                                        }}
+                                                                    >
+                                                                        <option value="">No one</option>
+                                                                        {members.filter(m => m.status === 'accepted').map(m => (
+                                                                            <option key={m.user_id} value={m.user_id}>
+                                                                                {m.user?.full_name?.split(' ')[0]}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
                                                             </div>
                                                         )}
                                                     </Draggable>
@@ -209,7 +279,20 @@ export default function BoardPage() {
                                                 onChange={(e) => setNewTaskTitle(e.target.value)}
                                                 placeholder="Task title..."
                                                 autoFocus
+                                                required
                                             />
+                                            <select
+                                                className="assignee-select"
+                                                value={newTaskAssignee || ""}
+                                                onChange={(e) => setNewTaskAssignee(e.target.value ? Number(e.target.value) : undefined)}
+                                            >
+                                                <option value="">No Assignee</option>
+                                                {members.map(m => (
+                                                    <option key={m.user_id} value={m.user_id}>
+                                                        {m.user?.full_name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                             <div className="add-task-actions">
                                                 <button type="submit" className="btn-sm btn-primary">
                                                     Add
@@ -220,6 +303,7 @@ export default function BoardPage() {
                                                     onClick={() => {
                                                         setShowAddTask(null);
                                                         setNewTaskTitle("");
+                                                        setNewTaskAssignee(undefined);
                                                     }}
                                                 >
                                                     Cancel
@@ -243,52 +327,77 @@ export default function BoardPage() {
             {/* invite modal */}
             {showInvite && (
                 <div className="modal-overlay" onClick={() => setShowInvite(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h2>Invite Member</h2>
-                        <form onSubmit={handleInvite}>
-                            <div className="form-group">
-                                <label htmlFor="invite_email">Email</label>
-                                <input
-                                    id="invite_email"
-                                    type="email"
-                                    value={inviteEmail}
-                                    onChange={(e) => setInviteEmail(e.target.value)}
-                                    placeholder="colleague@example.com"
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="invite_role">Role</label>
-                                <select
-                                    id="invite_role"
-                                    value={inviteRole}
-                                    onChange={(e) => setInviteRole(e.target.value)}
-                                >
-                                    <option value="member">Member</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-                            <div className="modal-actions">
-                                <button type="button" className="btn-ghost" onClick={() => setShowInvite(false)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    Send Invite
-                                </button>
-                            </div>
-                        </form>
+                    <div className="modal-content wide-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Invite Members</h2>
+                            <button className="btn-ghost" onClick={() => setShowInvite(false)}>✕</button>
+                        </div>
 
-                        {/* members list */}
+                        <div className="invite-controls">
+                            <input
+                                type="text"
+                                placeholder="Search users by name or email..."
+                                value={userSearch}
+                                onChange={(e) => setUserSearch(e.target.value)}
+                                className="search-input"
+                            />
+                            <select
+                                value={inviteRole}
+                                onChange={(e) => setInviteRole(e.target.value)}
+                                className="role-select"
+                            >
+                                <option value="member">Member</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+
+                        <div className="user-selection-list">
+                            {filteredUsers.length === 0 ? (
+                                <p className="empty-text">No users found to invite.</p>
+                            ) : (
+                                filteredUsers.map(u => (
+                                    <div key={u.id} className="user-invite-row">
+                                        <div className="user-info">
+                                            <span className="user-name">{u.full_name}</span>
+                                            <span className="user-email">{u.email}</span>
+                                        </div>
+                                        <button
+                                            className="btn-sm btn-primary"
+                                            onClick={() => handleAddUser(u.email)}
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* current members list */}
                         {members.length > 0 && (
                             <div className="members-list">
-                                <h3>Members</h3>
-                                {members.map((m) => (
-                                    <div key={m.id} className="member-row">
-                                        <span>{m.user?.full_name || m.user?.email || `User #${m.user_id}`}</span>
-                                        <span className="role-badge">{m.role}</span>
-                                        <span className={`status-badge ${m.status}`}>{m.status}</span>
-                                    </div>
-                                ))}
+                                <h3>Current Members</h3>
+                                <div className="members-scroll">
+                                    {members.map((m) => (
+                                        <div key={m.id} className="member-row">
+                                            <div className="member-info">
+                                                <span className="name">{m.user?.full_name || m.user?.email || `User #${m.user_id}`}</span>
+                                                <span className="email">{m.user?.email}</span>
+                                            </div>
+                                            <div className="member-status">
+                                                <span className="role-badge">{m.role}</span>
+                                                {user?.id !== m.user_id && m.role !== 'owner' && (
+                                                    <button
+                                                        className="btn-sm btn-danger"
+                                                        onClick={() => handleRemoveMember(m.user_id)}
+                                                        title="Remove from project"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -297,3 +406,4 @@ export default function BoardPage() {
         </div>
     );
 }
+
