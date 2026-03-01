@@ -1,0 +1,28 @@
+# General
+.env
+.env.*
+!.env.example
+!.env.template
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+ENV/
+
+# Build artifacts
+dist/
+build/
+*.py[cod]
+__pycache__/
